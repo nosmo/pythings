@@ -1,1 +1,4 @@
-Basic Python interface to the AppleScript interface for Cultured Code's excellent Things todo app.
+pythings
+========
+
+Python interface (via AppleScript) to Cultured Code's excellent Things app
