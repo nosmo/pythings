@@ -3,73 +3,117 @@
 import ScriptingBridge
 from collections import namedtuple
 
-#TODO
-class Project(object):
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-#TODO
-class Todo(object):
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
-class ThingsInterface(object):
-
+class ThingsObject(object):
     def __init__(self):
         self.things = ScriptingBridge.SBApplication.applicationWithBundleIdentifier_("com.culturedcode.things")
 
-    def getTodo(self, todo):
-        return {
-            "name": todo.name(),
-            "notes": todo.notes(),
-            "creation_date": todo.creationDate(),
-            "modification_date": todo.modificationDate(),
-            "id": todo.id(),
-            "tags": todo.tagNames().split(", "),
-            "area": todo.area().name(),
-            "completion_date": todo.completionDate(),
-            "completed": True if todo.completionDate() else False,
-            "contact": todo.contact().name()
+#TODO
+class Projects(ThingsObject):
+    def __init__(self, **entries):
+        ThingsObject.__init__(self)
+        self.projects = [ i for i in self.things.projects() ]
+
+class Project(object):
+    def __init__(self, project_object):
+        ThingsObject.__init__(self)
+        self.__dict__ = {
+            "name": project_object.name(),
+            "notes": project_object.notes(),
+            "creation_date": project_object.creationDate(),
+            "modification_date": project_object.modificationDate(),
+            "id": project_object.id(),
+            "todos": [ ToDo(i) for i in project_object.toDos() ],
+            "tags": project_object.tagNames().split(", "),
+            "area": project_object.area().name(),
+            "completion_date": project_object.completionDate(),
+            # hack
+            "completed": True if project_object.completionDate() else False,
+            "contact": project_object.contact().name()
         }
 
+    def complete(self):
+        #TODO
+        #move to list Logbook
+        raise NotImplemented
 
-    def getToDos(self):
-        todolist = []
-        for todo in self.things.toDos():
-            todo_details = self.getTodo(todo)
-            todolist.append(todo_details)
-        return todolist
+class ToDo(object):
+    def __init__(self, todo_object):
+        self.todo_object = todo_object
+        self.__dict__ = {
+            "name": todo_object.name(),
+            "notes": todo_object.notes(),
+            "creation_date": todo_object.creationDate(),
+            "modification_date": todo_object.modificationDate(),
+            "id": todo_object.id(),
+            "tags": todo_object.tagNames().split(", "),
+            "area": todo_object.area().name(),
+            "completion_date": todo_object.completionDate(),
+            # hack
+            "completed": True if todo_object.completionDate() else False,
+            "contact": todo_object.contact().name()
+        }
 
-    def getProjects(self):
-        projectlist = []
-        for project in self.things.projects():
-            project_details = {
-                "name": project.name(),
-                "notes": project.notes(),
-                "creation_date": project.creationDate(),
-                "modification_date": project.modificationDate(),
-                "id": project.id(),
-                #TODO make this a native todo object
-                "todos": [ self.getTodo(i) for i in project.toDos() ],
-                #"todos": len(project.toDos()),
-                "tags": project.tagNames().split(", "),
-                "area": project.area().name(),
-                "completion_date": project.completionDate(),
-                "completed": True if project.completionDate() else False,
-                "contact": project.contact().name()
+    def cancel(self):
+        #TODO (oh the irony)
+        # Once how to set status has been figured out...
+        # set status to canceled
+        raise NotImplemented
+
+    def complete(self):
+        #TODO
+        # set status to completed or move to Logbook list
+        raise NotImplemented
+
+class ToDos(ThingsObject):
+    def __init__(self):
+        ThingsObject.__init__(self)
+        self.todos = [ ToDo(i) for i in self.things.toDos() ]
+
+class Areas(ThingsObject):
+
+    def __init__(self):
+        ThingsObject.__init__(self)
+        self.areas = [ Area(i) for i in self.things.areas() ]
+        #x = Area(z)
+        #print x.toDos
+
+class Area(object):
+    def __init__(self, area_object):
+        self.__dict__ = {
+            "name": area_object.name(),
+            "id": area_object.id(),
+            "toDos": [ ToDo(i) for i in area_object.toDos() ],
+            "tags": area_object.tagNames().split(", "),
+            "suspended": True if area_object.suspended() else False
+            #"projects": area_object.projects()
             }
-            #projectlist.append(Project(**project_details))
-            projectlist.append(project_details)
-        return projectlist
+
+class Contacts(ThingsObject):
+    #TODO
+    pass
+
+class Contact(object):
+    #TODO
+    pass
 
 def main():
-    a = ThingsInterface()
+    # Nothing to see here
+    # http://venturefans.org/w/images/thumb/9/98/GGI.png/250px-GGI.png
+    z = Areas().areas[0]
     import pprint
+    pprint.pprint(dir(z))
+    print z.properties()
+    print z.attributeKeys()
+    print z.suspended()
+    print ";"
+    x = Areas().things.toDos()[0]
+    pprint.pprint(dir(Areas().things))
+    print x.project()
+    #x = ToDos().todos[0].suspended()
+    #a = ThingsInterface()
+    #import pprint
     #pprint.pprint(a.getToDos())
-    pprint.pprint(a.getProjects())
+    #pprint.pprint(a.getProjects())
 
 if __name__ == "__main__":
     main()
