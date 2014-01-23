@@ -5,7 +5,7 @@ Python interface (via AppleScript) to Cultured Code's excellent Things app.
 
 Implementation
 -------------
-Swabber uses the PyObjC Python/Objective-C bridge for communication with Things.
+pythings uses the PyObjC Python/Objective-C bridge for communication with Things.
 
 Use
 -------------
