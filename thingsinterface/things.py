@@ -22,7 +22,7 @@ class Project(object):
             "creation_date": project_object.creationDate(),
             "modification_date": project_object.modificationDate(),
             "id": project_object.id(),
-            "todos": [ ToDo(i) for i in project_object.toDos() ],
+            "todos": [ ToDo.__init_fromSBObject(i) for i in project_object.toDos() ],
             "tags": project_object.tagNames().split(", "),
             "area": project_object.area().name(),
             "completion_date": project_object.completionDate(),
@@ -36,8 +36,56 @@ class Project(object):
         #move to list Logbook
         raise NotImplemented
 
-class ToDo(object):
-    def __init__(self, todo_object):
+class ToDo(ThingsObject):
+
+    """Unique functions of a toDo object: ['show', 'tagNames',
+    'setProject_', 'modificationDate', 'close', 'id', 'setArea_',
+    'completionDate', 'area', 'setContact_', 'dueDate',
+    'setModificationDate_', 'printWithProperties_printDialog_',
+    'cancellationDate', 'status', 'tags', 'moveTo_', 'creationDate',
+    'duplicateTo_withProperties_', 'setTagNames_', 'scheduleFor_',
+    'name', 'edit', 'setCreationDate_', 'setCompletionDate_',
+    'setCancellationDate_', 'project', 'activationDate', 'contact',
+    'setStatus_', 'setName_', 'setDueDate_', 'setNotes_', 'notes',
+    'delete']
+
+    AppleScript properties of a "to do" - id, tagNames,
+    cancellationDate, creationDate, dueDate, contact, modficationDate,
+    project, A specific osascript ID (referenced in the bridge
+    object), notes, activationDate, completionDate, status, name
+
+    """
+
+    def __init__(self, name, tags=[], location="Inbox"):
+        ThingsObject.__init__(self)
+
+        taglist = []
+        for tag in tags:
+            tag_object = self.things.classForScriptingClass_("tag").alloc()
+            tag_object = tag_object.initWithProperties_({"name": tag})
+            taglist.append(tag_object)
+
+        todo_object = self.things.classForScriptingClass_("to do").alloc()
+        todo_object = todo_object.initWithProperties_({
+            "name": "testing applescript",
+            "tagNames": ", ".join(tags),
+        })
+        print [ i for i in dir(todo_object) if "tag" in i ]
+
+        self.tags = tags
+
+        assigned = False
+        for thingslist in self.things.lists():
+            if thingslist.name() == location:
+                thingslist.toDos().append(todo_object)
+                assigned = True
+
+        if not assigned:
+            raise KeyError
+        self.thingsid = todo_object.id()
+
+
+    def __init_fromSBObject(self, todo_object):
         self.todo_object = todo_object
         self.__dict__ = {
             "name": todo_object.name(),
@@ -67,7 +115,7 @@ class ToDo(object):
 class ToDos(ThingsObject):
     def __init__(self):
         ThingsObject.__init__(self)
-        self.todos = [ ToDo(i) for i in self.things.toDos() ]
+        self.todos = [ ToDo.__init_fromSBObject(i) for i in self.things.toDos() ]
 
 class Areas(ThingsObject):
 
@@ -82,7 +130,7 @@ class Area(object):
         self.__dict__ = {
             "name": area_object.name(),
             "id": area_object.id(),
-            "toDos": [ ToDo(i) for i in area_object.toDos() ],
+            "toDos": [ ToDo.__init_fromSBObject(i) for i in area_object.toDos() ],
             "tags": area_object.tagNames().split(", "),
             "suspended": True if area_object.suspended() else False
             #"projects": area_object.projects()
@@ -97,18 +145,25 @@ class Contact(object):
     pass
 
 def main():
+    a = ToDo("Test", tags=["lol", "hax"], location="Today")
+    #for todo in a.things.toDos():
+    #    if todo.tags():
+    #        print todo.properties()
+    print [ i for i in dir(a.things) if "propert" in i.lower() ]
+    print [ i for i in dir(a.things) if "tag" in i.lower() ]
+
     # Nothing to see here
     # http://venturefans.org/w/images/thumb/9/98/GGI.png/250px-GGI.png
-    z = Areas().areas[0]
-    import pprint
-    pprint.pprint(dir(z))
-    print z.properties()
-    print z.attributeKeys()
-    print z.suspended()
-    print ";"
-    x = Areas().things.toDos()[0]
-    pprint.pprint(dir(Areas().things))
-    print x.project()
+    #z = Areas().areas[0]
+    #import pprint
+    #pprint.pprint(dir(z))
+    #print z.properties()
+    #print z.attributeKeys()
+    #print z.suspended()
+    #print ";"
+    #x = Areas().things.toDos()[0]
+    #pprint.pprint(dir(Areas().things))
+    #print x.project()
     #x = ToDos().todos[0].suspended()
     #a = ThingsInterface()
     #import pprint

@@ -10,19 +10,27 @@ pythings uses the PyObjC Python/Objective-C bridge for communication with Things
 Use
 -------------
 
-At the moment the library is seriously dumb and avoids any kind of fancy object creation. Projects and ToDos are returned as dicts.
+At the moment the library is seriously dumb.
 
 Objects that currently work:
-Lists of all $objects that contains all $objects in the $objects attribute
+Lists of all $objects that contains all $objects in the $objects attribute (these are resource intensive - see below)
 * Projects
 * Areas
 * ToDos
+
 Simple objects that contain a dictionary of the expected attributes for the object
 * Project
 * Area
 * ToDo
 
-As of yet none of these support modification.
+As of yet only ToDos support modification, like so:
+```
+>>> import thingsinterface
+>>> thingsinterface.ToDo
+<class 'thingsinterface.things.ToDo'>
+>>> a = thingsinterface.ToDo("Testing pythings", tags=["useless"], location="Today")
+```
+And a suitably named todo will appear in Today.
 
 Stuff that doesn't work yet:
 * Contacts
@@ -34,6 +42,8 @@ Using the ScriptingBridge object will create a Python process that's visible in 
 
 The use of the ScriptingBridge object means that you must use a version of Python with this functionality built in. When in doubt, use /usr/bin/python. The version I have installed from prefix Portage does not have this support included.
 
-The Applescript interface is slow like Philip Glass on DXM. Querying all ToDos or all Projets will take minutes for mature Things profiles. Querying all projects with their constituent todos takes 7 minutes on my computer. This is a prime candidate for storing objects in some other format keyed by id.
+The Applescript interface is slow like Philip Glass on DXM. Querying all ToDos or all Projects will take minutes for mature Things profiles. Querying all projects with their constituent todos takes 7 minutes on my computer. This is a prime candidate for storing objects in some other format keyed by id.
 
 The Applescript interface is also a massive hog while it's being slow - CPU use will stick at 100% for a while while stuff is being queried.
+
+The library isn't finished in the first place.
