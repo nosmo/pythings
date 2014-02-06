@@ -21,7 +21,7 @@ class Project(object):
             "notes": project_object.notes(),
             "creation_date": project_object.creationDate(),
             "modification_date": project_object.modificationDate(),
-            "id": project_object.id(),
+            "thingsid": project_object.id(),
             "todos": [ ToDo.__init_fromSBObject(i) for i in project_object.toDos() ],
             "tags": project_object.tagNames().split(", "),
             "area": project_object.area().name(),
@@ -56,21 +56,19 @@ class ToDo(ThingsObject):
 
     """
 
-    def __init__(self, name, tags=[], location="Inbox"):
+    def __init__(self, name, tags=[], notes="", location="Inbox", creation_area=""):
         ThingsObject.__init__(self)
 
-        taglist = []
-        for tag in tags:
-            tag_object = self.things.classForScriptingClass_("tag").alloc()
-            tag_object = tag_object.initWithProperties_({"name": tag})
-            taglist.append(tag_object)
+        if location and creation_area:
+            print ("WARNING! Inserting to a location and a creation_area at the "
+                   "same time will create two ToDos")
 
         todo_object = self.things.classForScriptingClass_("to do").alloc()
         todo_object = todo_object.initWithProperties_({
             "name": "testing applescript",
             "tagNames": ", ".join(tags),
+            "notes": notes,
         })
-        print [ i for i in dir(todo_object) if "tag" in i ]
 
         self.tags = tags
 
@@ -82,8 +80,14 @@ class ToDo(ThingsObject):
 
         if not assigned:
             raise KeyError
-        self.thingsid = todo_object.id()
 
+        for area in self.things.areas():
+            if area.name() == creation_area:
+                area.toDos().append(todo_object)
+
+        self.thingsid = todo_object.id()
+        self.creation_date = todo_object.creationDate()
+        self.modification_date = todo_object.modificationDate()
 
     def __init_fromSBObject(self, todo_object):
         self.todo_object = todo_object
@@ -92,7 +96,7 @@ class ToDo(ThingsObject):
             "notes": todo_object.notes(),
             "creation_date": todo_object.creationDate(),
             "modification_date": todo_object.modificationDate(),
-            "id": todo_object.id(),
+            "thingsid": todo_object.id(),
             "tags": todo_object.tagNames().split(", "),
             "area": todo_object.area().name(),
             "completion_date": todo_object.completionDate(),
@@ -129,7 +133,7 @@ class Area(object):
     def __init__(self, area_object):
         self.__dict__ = {
             "name": area_object.name(),
-            "id": area_object.id(),
+            "thingsid": area_object.id(),
             "toDos": [ ToDo.__init_fromSBObject(i) for i in area_object.toDos() ],
             "tags": area_object.tagNames().split(", "),
             "suspended": True if area_object.suspended() else False
@@ -145,30 +149,8 @@ class Contact(object):
     pass
 
 def main():
-    a = ToDo("Test", tags=["lol", "hax"], location="Today")
-    #for todo in a.things.toDos():
-    #    if todo.tags():
-    #        print todo.properties()
-    print [ i for i in dir(a.things) if "propert" in i.lower() ]
-    print [ i for i in dir(a.things) if "tag" in i.lower() ]
-
-    # Nothing to see here
-    # http://venturefans.org/w/images/thumb/9/98/GGI.png/250px-GGI.png
-    #z = Areas().areas[0]
-    #import pprint
-    #pprint.pprint(dir(z))
-    #print z.properties()
-    #print z.attributeKeys()
-    #print z.suspended()
-    #print ";"
-    #x = Areas().things.toDos()[0]
-    #pprint.pprint(dir(Areas().things))
-    #print x.project()
-    #x = ToDos().todos[0].suspended()
-    #a = ThingsInterface()
-    #import pprint
-    #pprint.pprint(a.getToDos())
-    #pprint.pprint(a.getProjects())
+    a = ToDo("Test", tags=["lol", "hax"],
+             notes="definitely a test", location="Today") #, creation_area="Home")
 
 if __name__ == "__main__":
     main()
