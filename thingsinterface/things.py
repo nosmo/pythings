@@ -145,6 +145,7 @@ class ToDos(ThingsObject):
         todolist = []
         for todo in todos:
             tododata = ToDo.fromSBObject(todo)
+            todolist.append(tododata)
         self.todos = todolist
 
 class Areas(ThingsObject):
