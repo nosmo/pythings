@@ -2,6 +2,7 @@
 
 import ScriptingBridge
 from collections import namedtuple
+import sys
 
 class ThingsObject(object):
     def __init__(self):
@@ -22,7 +23,7 @@ class Project(object):
             "creation_date": project_object.creationDate(),
             "modification_date": project_object.modificationDate(),
             "thingsid": project_object.id(),
-            "todos": [ ToDo.__init_fromSBObject(i) for i in project_object.toDos() ],
+            "todos": [ ToDo.fromSBObject(i) for i in project_object.toDos() ],
             "tags": project_object.tagNames().split(", "),
             "area": project_object.area().name(),
             "completion_date": project_object.completionDate(),
@@ -56,26 +57,30 @@ class ToDo(ThingsObject):
 
     """
 
-    def __init__(self, name, tags=[], notes="", location="Inbox", creation_area=""):
+    def __init__(self, name, tags=[], notes="", location="Inbox", creation_area="", todo_obj=None):
         ThingsObject.__init__(self)
 
-        if location and creation_area:
-            print ("WARNING! Inserting to a location and a creation_area at the "
-                   "same time will create two ToDos")
+        if not todo_obj:
+            if location and creation_area:
+                sys.stderr.write(("WARNING! Inserting to a location and a creation_area at the "
+                                  "same time will create two ToDos\n"))
 
-        todo_object = self.things.classForScriptingClass_("to do").alloc()
-        todo_object = todo_object.initWithProperties_({
-            "name": name,
-            "tagNames": ", ".join(tags),
-            "notes": notes,
-        })
+            self.todo_object = self.things.classForScriptingClass_("to do").alloc()
+            self.todo_object = self.todo_object.initWithProperties_({
+                "name": name,
+                "tagNames": ", ".join(tags),
+                "notes": notes,
+            })
+        else:
+            self.todo_object = todo_obj
 
         self.tags = tags
 
         assigned = False
         for thingslist in self.things.lists():
             if thingslist.name() == location:
-                thingslist.toDos().append(todo_object)
+                if not todo_obj:
+                    thingslist.toDos().append(self.todo_object)
                 assigned = True
 
         if not assigned:
@@ -83,15 +88,25 @@ class ToDo(ThingsObject):
 
         for area in self.things.areas():
             if area.name() == creation_area:
-                area.toDos().append(todo_object)
+                if not todo_obj:
+                    area.toDos().append(self.todo_object)
 
-        self.thingsid = todo_object.id()
-        self.creation_date = todo_object.creationDate()
-        self.modification_date = todo_object.modificationDate()
+        self.thingsid = self.todo_object.id()
+        self.creation_date = self.todo_object.creationDate()
+        self.modification_date = self.todo_object.modificationDate()
 
-    def __init_fromSBObject(self, todo_object):
-        self.todo_object = todo_object
-        self.__dict__ = {
+    @classmethod
+    def fromSBObject(cls, todo_object):
+        #return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
+        #           location=
+
+        return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
+                   notes=todo_object.name(), creation_area=todo_object.area().name(),
+                   todo_obj=todo_object)
+
+    @staticmethod
+    def _makeDictFromToDo(todo_object):
+        return {
             "name": todo_object.name(),
             "notes": todo_object.notes(),
             "creation_date": todo_object.creationDate(),
@@ -117,9 +132,20 @@ class ToDo(ThingsObject):
         raise NotImplemented
 
 class ToDos(ThingsObject):
-    def __init__(self):
+    def __init__(self, thingslist=None):
         ThingsObject.__init__(self)
-        self.todos = [ ToDo.__init_fromSBObject(i) for i in self.things.toDos() ]
+        selectedlist = None
+        for templist in self.things.lists():
+            if thingslist and templist.name() == thingslist:
+                selectedlist = templist
+        if not selectedlist:
+            # get ready to wait
+            selectedlist = self.things
+        todos = selectedlist.toDos()
+        todolist = []
+        for todo in todos:
+            tododata = ToDo.fromSBObject(todo)
+        self.todos = todolist
 
 class Areas(ThingsObject):
 
@@ -134,7 +160,7 @@ class Area(object):
         self.__dict__ = {
             "name": area_object.name(),
             "thingsid": area_object.id(),
-            "toDos": [ ToDo.__init_fromSBObject(i) for i in area_object.toDos() ],
+            "toDos": [ ToDo.fromSBObject(i) for i in area_object.toDos() ],
             "tags": area_object.tagNames().split(", "),
             "suspended": True if area_object.suspended() else False
             #"projects": area_object.projects()
