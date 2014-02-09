@@ -65,7 +65,7 @@ class ToDo(ThingsObject):
 
         todo_object = self.things.classForScriptingClass_("to do").alloc()
         todo_object = todo_object.initWithProperties_({
-            "name": "testing applescript",
+            "name": name,
             "tagNames": ", ".join(tags),
             "notes": notes,
         })
