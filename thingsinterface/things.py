@@ -4,9 +4,20 @@ import ScriptingBridge
 from collections import namedtuple
 import sys
 
+#cl cm io
+#[1952736108, 1952736109, 1952737647]
+STATUS_MAP = {
+    "open": 1952737647, #"tdio",
+    "closed": 1952736109, #"tdcm",
+    "cancelled": 1952736108 #"tdcl"
+}
+
+def getThings():
+    return ScriptingBridge.SBApplication.applicationWithBundleIdentifier_("com.culturedcode.things")
+
 class ThingsObject(object):
     def __init__(self):
-        self.things = ScriptingBridge.SBApplication.applicationWithBundleIdentifier_("com.culturedcode.things")
+        self.things = getThings()
 
 #TODO
 class Projects(ThingsObject):
@@ -57,10 +68,17 @@ class ToDo(ThingsObject):
 
     """
 
-    def __init__(self, name, tags=[], notes="", location="Inbox", creation_area="", todo_obj=None):
+    @staticmethod
+    def _getTodoByID(desired_id):
+        things = getThings()
+        return ToDo(todo_obj=things.toDos().objectWithID_(desired_id))
+
+    def __init__(self, name="", tags=[], notes="",
+                 location="Inbox", creation_area="", todo_obj=None):
         ThingsObject.__init__(self)
 
         if not todo_obj:
+            self.name = name
             if location and creation_area:
                 sys.stderr.write(("WARNING! Inserting to a location and a creation_area at the "
                                   "same time will create two ToDos\n"))
@@ -71,25 +89,26 @@ class ToDo(ThingsObject):
                 "tagNames": ", ".join(tags),
                 "notes": notes,
             })
+
+            assigned = False
+            for thingslist in self.things.lists():
+                if thingslist.name() == location:
+                    if not todo_obj:
+                        thingslist.toDos().append(self.todo_object)
+                    assigned = True
+
+            if not assigned:
+                raise KeyError
+
+            for area in self.things.areas():
+                if area.name() == creation_area:
+                    if not todo_obj:
+                        area.toDos().append(self.todo_object)
         else:
+            self.name = todo_obj.name()
             self.todo_object = todo_obj
 
         self.tags = tags
-
-        assigned = False
-        for thingslist in self.things.lists():
-            if thingslist.name() == location:
-                if not todo_obj:
-                    thingslist.toDos().append(self.todo_object)
-                assigned = True
-
-        if not assigned:
-            raise KeyError
-
-        for area in self.things.areas():
-            if area.name() == creation_area:
-                if not todo_obj:
-                    area.toDos().append(self.todo_object)
 
         self.thingsid = self.todo_object.id()
         self.creation_date = self.todo_object.creationDate()
@@ -121,27 +140,34 @@ class ToDo(ThingsObject):
         }
 
     def cancel(self):
-        #TODO (oh the irony)
-        # Once how to set status has been figured out...
-        # set status to canceled
-        raise NotImplemented
+        self.todo_object.setStatus_(STATUS_MAP["cancelled"])
 
     def complete(self):
-        #TODO
-        # set status to completed or move to Logbook list
-        raise NotImplemented
+        self.todo_object.setStatus_(STATUS_MAP["closed"])
+
+    #TODO iterate over
 
 class ToDos(ThingsObject):
+
     def __init__(self, thingslist=None):
         ThingsObject.__init__(self)
         selectedlist = None
-        for templist in self.things.lists():
-            if thingslist and templist.name() == thingslist:
-                selectedlist = templist
-        if not selectedlist:
-            # get ready to wait
-            selectedlist = self.things
-        todos = selectedlist.toDos()
+        todos = []
+        if thingslist:
+            for templist in self.things.lists():
+                if thingslist and templist.name() == thingslist:
+                    selectedlist = templist
+            if not selectedlist:
+                # get ready to wait
+                selectedlist = self.things
+            todos = selectedlist.toDos()
+        else:
+            # get a random things object to have a type comparison
+            todotype = self.things.toDos()[0]
+            for thingsobj in self.things.toDos().get():
+                if type(thingsobj) == type(todotype):
+                    todos.append(thingsobj)
+
         todolist = []
         for todo in todos:
             tododata = ToDo.fromSBObject(todo)
@@ -176,7 +202,7 @@ class Contact(object):
     pass
 
 def main():
-    a = ToDo("Test", tags=["lol", "hax"],
+    a = ToDo(name="Test", tags=["lol", "hax"],
              notes="definitely a test", location="Today") #, creation_area="Home")
 
 if __name__ == "__main__":
