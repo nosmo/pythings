@@ -45,5 +45,3 @@ The use of the ScriptingBridge object means that you must use a version of Pytho
 The Applescript interface is slow like Philip Glass on DXM. Querying all ToDos or all Projects will take minutes for mature Things profiles. Querying all projects with their constituent todos takes 7 minutes on my computer. This is a prime candidate for storing objects in some other format keyed by id.
 
 The Applescript interface is also a massive hog while it's being slow - CPU use will stick at 100% for a while while stuff is being queried.
-
-The library isn't finished in the first place.
