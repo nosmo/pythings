@@ -169,9 +169,19 @@ class ToDos(ThingsObject):
                     todos.append(thingsobj)
 
         todolist = []
-        for todo in todos:
-            tododata = ToDo.fromSBObject(todo)
-            todolist.append(tododata)
+        try:
+            for todo in todos:
+                tododata = ToDo.fromSBObject(todo)
+                todolist.append(tododata)
+        except IndexError as e:
+            # If Things is in use while we're working on it the index
+            # length can sometimes change. This will cause an
+            # indexerror, just plough on regardless.
+            todolist = []
+            for todo in todos:
+                tododata = ToDo.fromSBObject(todo)
+                todolist.append(tododata)
+
         self.todos = todolist
 
 class Areas(ThingsObject):
