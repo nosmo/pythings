@@ -4,8 +4,6 @@ import ScriptingBridge
 from collections import namedtuple
 import sys
 
-#cl cm io
-#[1952736108, 1952736109, 1952737647]
 STATUS_MAP = {
     "open": 1952737647, #"tdio",
     "closed": 1952736109, #"tdcm",
@@ -45,7 +43,7 @@ class Project(object):
 
     def complete(self):
         #TODO
-        #move to list Logbook
+        # Implementation involves moving to List "Logbook"
         raise NotImplemented
 
 class ToDo(ThingsObject):
@@ -116,8 +114,6 @@ class ToDo(ThingsObject):
 
     @classmethod
     def fromSBObject(cls, todo_object):
-        #return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
-        #           location=
 
         return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
                    notes=todo_object.name(), creation_area=todo_object.area().name(),
@@ -134,7 +130,6 @@ class ToDo(ThingsObject):
             "tags": todo_object.tagNames().split(", "),
             "area": todo_object.area().name(),
             "completion_date": todo_object.completionDate(),
-            # hack
             "completed": True if todo_object.completionDate() else False,
             "contact": todo_object.contact().name()
         }
@@ -145,7 +140,6 @@ class ToDo(ThingsObject):
     def complete(self):
         self.todo_object.setStatus_(STATUS_MAP["closed"])
 
-    #TODO iterate over
 
 class ToDos(ThingsObject):
 
@@ -183,6 +177,23 @@ class ToDos(ThingsObject):
                 todolist.append(tododata)
 
         self.todos = todolist
+
+    def __len__(self):
+        """Return the number of todo objects. """
+        return len(self.todos)
+
+    def __iter__(self):
+        """Iterate over the todo objects."""
+        for todo in self.todos:
+            yield todo
+
+    def __nonzero__(self):
+        """Are there any todos in this list?"""
+        if self.__len__() > 0:
+            return True
+        else:
+            return False
+
 
 class Areas(ThingsObject):
 
