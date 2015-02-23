@@ -140,6 +140,14 @@ class ToDo(ThingsObject):
     def complete(self):
         self.todo_object.setStatus_(STATUS_MAP["closed"])
 
+    def is_closed(self):
+        return self.todo_object.status() == STATUS_MAP["closed"]
+
+    def is_cancelled(self):
+        return self.todo_object.status() == STATUS_MAP["cancelled"]
+
+    def __cmp__(self, other):
+        return self.thingsid == other.thingsid
 
 class ToDos(ThingsObject):
 
