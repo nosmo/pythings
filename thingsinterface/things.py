@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-import ScriptingBridge
+try:
+    import ScriptingBridge
+except ImportError as exc:
+    raise ImportError(("Please use an OS X specific version of Python "
+                       "with ScriptingBridge support"))
+
 from collections import namedtuple
 import sys
 
