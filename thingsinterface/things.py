@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+'''Python interface to Things.app's Applescript interface.
+
+Lol! :'(
+'''
+
 try:
     import ScriptingBridge
 except ImportError as exc:
@@ -9,6 +14,7 @@ except ImportError as exc:
 from collections import namedtuple
 import sys
 
+# These integers are used to set the status of a task internally.
 STATUS_MAP = {
     "open": 1952737647, #"tdio",
     "closed": 1952736109, #"tdcm",
@@ -16,7 +22,8 @@ STATUS_MAP = {
 }
 
 def getThings():
-    return ScriptingBridge.SBApplication.applicationWithBundleIdentifier_("com.culturedcode.things")
+    return ScriptingBridge.SBApplication.applicationWithBundleIdentifier_(
+        "com.culturedcode.things")
 
 class ThingsObject(object):
     def __init__(self):
@@ -96,12 +103,22 @@ class ToDo(ThingsObject):
             assigned = False
             for thingslist in self.things.lists():
                 if thingslist.name() == location:
-                    if not todo_obj:
-                        thingslist.toDos().append(self.todo_object)
+                    thingslist.toDos().append(self.todo_object)
                     assigned = True
 
             if not assigned:
-                raise KeyError
+                # In rare cases where there has been some kind of
+                # weird internal OS X fuck-up, self.things.lists()
+                # will be empty despite Things performing perfectly
+                # fine and ToDos being accessed correctly. I have no
+                # idea how to reproduce or guard against it, so
+                # throwing an exception here is okay with me for now.
+                raise KeyError(
+                    ("Couldn't assign Things ToDo \"%s\" to a list "
+                     "(location %s, available locations: %s.") % (
+                         self.name, location, str(
+                             [ t.name() for t in self.things.lists() ]))
+                )
 
             for area in self.things.areas():
                 if area.name() == creation_area:
