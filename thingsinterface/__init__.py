@@ -1,3 +1,3 @@
-from .things import ToDo, ToDos, STATUS_MAP
+from .things import Area, Areas, Project, Projects, Status, ToDo, ToDos
 
-__all__ = ["ToDo", "ToDos", "STATUS_MAP"]
+__all__ = ["Area", "Areas", "Project", "Projects", "Status", "ToDo", "ToDos"]

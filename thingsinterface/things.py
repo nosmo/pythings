@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''Python interface to Things.app's Applescript interface.
 
 Lol! :'(
@@ -8,55 +6,60 @@ Lol! :'(
 try:
     import ScriptingBridge
 except ImportError as exc:
-    raise ImportError(("ScriptingBridge is unavailable. Install it with "
-                       "\"pip install pyobjc-framework-ScriptingBridge\" and use "
-                       "an OS X specific version of Python")) from exc
+    raise ImportError("ScriptingBridge is unavailable. Install it with "
+                      "\"pip install pyobjc-framework-ScriptingBridge\" and use "
+                      "an OS X specific version of Python") from exc
 
-import sys
+import enum
+import warnings
 
-# These integers are used to set the status of a task internally.
-STATUS_MAP = {
-    "open": 1952737647, #"tdio",
-    "closed": 1952736109, #"tdcm",
-    "cancelled": 1952736108 #"tdcl"
-}
 
-def getThings():
+class Status(enum.IntEnum):
+    """The integers Things uses internally to set the status of a task."""
+
+    OPEN = 1952737647  # "tdio"
+    CLOSED = 1952736109  # "tdcm"
+    CANCELLED = 1952736108  # "tdcl"
+
+
+def get_things():
     return ScriptingBridge.SBApplication.applicationWithBundleIdentifier_(
         "com.culturedcode.things")
 
-class ThingsObject(object):
-    def __init__(self):
-        self.things = getThings()
 
-#TODO
+class ThingsObject:
+    def __init__(self):
+        self.things = get_things()
+
+
+# TODO
 class Projects(ThingsObject):
-    def __init__(self, **entries):
-        ThingsObject.__init__(self)
-        self.projects = [ i for i in self.things.projects() ]
+    def __init__(self):
+        super().__init__()
+        self.projects = list(self.things.projects())
+
 
 class Project(ThingsObject):
     def __init__(self, project_object):
-        ThingsObject.__init__(self)
-        self.__dict__.update({
-            "name": project_object.name(),
-            "notes": project_object.notes(),
-            "creation_date": project_object.creationDate(),
-            "modification_date": project_object.modificationDate(),
-            "thingsid": project_object.id(),
-            "todos": [ ToDo.fromSBObject(i) for i in project_object.toDos() ],
-            "tags": project_object.tagNames().split(", "),
-            "area": project_object.area().name(),
-            "completion_date": project_object.completionDate(),
-            # hack
-            "completed": True if project_object.completionDate() else False,
-            "contact": project_object.contact().name()
-        })
+        super().__init__()
+        self.name = project_object.name()
+        self.notes = project_object.notes()
+        self.creation_date = project_object.creationDate()
+        self.modification_date = project_object.modificationDate()
+        self.thingsid = project_object.id()
+        self.todos = [ToDo.from_sb_object(i) for i in project_object.toDos()]
+        self.tags = project_object.tagNames().split(", ")
+        self.area = project_object.area().name()
+        self.completion_date = project_object.completionDate()
+        # hack
+        self.completed = bool(project_object.completionDate())
+        self.contact = project_object.contact().name()
 
     def complete(self):
-        #TODO
+        # TODO
         # Implementation involves moving to List "Logbook"
         raise NotImplementedError
+
 
 class ToDo(ThingsObject):
 
@@ -78,22 +81,17 @@ class ToDo(ThingsObject):
 
     """
 
-    @staticmethod
-    def _getTodoByID(desired_id):
-        things = getThings()
-        return ToDo(todo_obj=things.toDos().objectWithID_(desired_id))
-
     def __init__(self, name="", tags=None, notes="",
                  location="Inbox", creation_area="", todo_obj=None):
-        ThingsObject.__init__(self)
+        super().__init__()
 
         tags = list(tags) if tags else []
 
         if not todo_obj:
             self.name = name
             if location and creation_area:
-                sys.stderr.write(("WARNING! Inserting to a location and a creation_area at the "
-                                  "same time will create two ToDos\n"))
+                warnings.warn("Inserting to a location and a creation_area at the "
+                              "same time will create two ToDos")
 
             self.todo_object = self.things.classForScriptingClass_("to do").alloc()
             self.todo_object = self.todo_object.initWithProperties_({
@@ -102,30 +100,31 @@ class ToDo(ThingsObject):
                 "notes": notes,
             })
 
-            assigned = False
             for thingslist in self.things.lists():
                 if thingslist.name() == location:
                     thingslist.toDos().append(self.todo_object)
-                    assigned = True
-
-            if not assigned:
+                    break
+            else:
                 # In rare cases where there has been some kind of
                 # weird internal OS X fuck-up, self.things.lists()
                 # will be empty despite Things performing perfectly
                 # fine and ToDos being accessed correctly. I have no
                 # idea how to reproduce or guard against it, so
                 # throwing an exception here is okay with me for now.
-                raise KeyError(
-                    ("Couldn't assign Things ToDo \"%s\" to a list "
-                     "(location %s, available locations: %s.") % (
-                         self.name, location, str(
-                             [ t.name() for t in self.things.lists() ]))
-                )
+                available = [t.name() for t in self.things.lists()]
+                raise KeyError(f"Couldn't assign Things ToDo \"{self.name}\" to a list "
+                               f"(location {location}, available locations: {available}.")
 
-            for area in self.things.areas():
-                if area.name() == creation_area:
-                    if not todo_obj:
+            if creation_area:
+                for area in self.things.areas():
+                    if area.name() == creation_area:
                         area.toDos().append(self.todo_object)
+                        break
+                else:
+                    available = [a.name() for a in self.things.areas()]
+                    raise KeyError(f"Couldn't assign Things ToDo \"{self.name}\" to an area "
+                                   f"(creation_area {creation_area}, "
+                                   f"available areas: {available}.")
         else:
             self.name = todo_obj.name()
             self.todo_object = todo_obj
@@ -137,38 +136,26 @@ class ToDo(ThingsObject):
         self.modification_date = self.todo_object.modificationDate()
 
     @classmethod
-    def fromSBObject(cls, todo_object):
-
+    def from_sb_object(cls, todo_object):
         return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
                    notes=todo_object.notes(), creation_area=todo_object.area().name(),
                    todo_obj=todo_object)
 
-    @staticmethod
-    def _makeDictFromToDo(todo_object):
-        return {
-            "name": todo_object.name(),
-            "notes": todo_object.notes(),
-            "creation_date": todo_object.creationDate(),
-            "modification_date": todo_object.modificationDate(),
-            "thingsid": todo_object.id(),
-            "tags": todo_object.tagNames().split(", "),
-            "area": todo_object.area().name(),
-            "completion_date": todo_object.completionDate(),
-            "completed": True if todo_object.completionDate() else False,
-            "contact": todo_object.contact().name()
-        }
+    @classmethod
+    def from_id(cls, desired_id):
+        return cls(todo_obj=get_things().toDos().objectWithID_(desired_id))
 
     def cancel(self):
-        self.todo_object.setStatus_(STATUS_MAP["cancelled"])
+        self.todo_object.setStatus_(Status.CANCELLED)
 
     def complete(self):
-        self.todo_object.setStatus_(STATUS_MAP["closed"])
+        self.todo_object.setStatus_(Status.CLOSED)
 
     def is_closed(self):
-        return self.todo_object.status() == STATUS_MAP["closed"]
+        return self.todo_object.status() == Status.CLOSED
 
     def is_cancelled(self):
-        return self.todo_object.status() == STATUS_MAP["cancelled"]
+        return self.todo_object.status() == Status.CANCELLED
 
     def __eq__(self, other):
         if not isinstance(other, ToDo):
@@ -178,40 +165,40 @@ class ToDo(ThingsObject):
     def __hash__(self):
         return hash(self.thingsid)
 
+
 class ToDos(ThingsObject):
 
     def __init__(self, thingslist=None):
-        ThingsObject.__init__(self)
+        super().__init__()
         selectedlist = None
         todos = []
         if thingslist:
             for templist in self.things.lists():
-                if thingslist and templist.name() == thingslist:
+                if templist.name() == thingslist:
                     selectedlist = templist
+                    break
             if not selectedlist:
                 # get ready to wait
                 selectedlist = self.things
             todos = selectedlist.toDos()
         else:
-            # get a random things object to have a type comparison
-            todotype = self.things.toDos()[0]
-            for thingsobj in self.things.toDos().get():
-                if type(thingsobj) == type(todotype):
-                    todos.append(thingsobj)
+            everything = list(self.things.toDos().get() or [])
+            if everything:
+                # The unscoped query can hand back entries that aren't
+                # ToDos, so key off the type of a known-good one rather
+                # than trusting everything in the list.
+                todotype = type(everything[0])
+                todos = [i for i in everything if isinstance(i, todotype)]
 
         todolist = []
-        try:
-            for todo in todos:
-                tododata = ToDo.fromSBObject(todo)
-                todolist.append(tododata)
-        except IndexError as e:
-            # If Things is in use while we're working on it the index
-            # length can sometimes change. This will cause an
-            # indexerror, just plough on regardless.
-            todolist = []
-            for todo in todos:
-                tododata = ToDo.fromSBObject(todo)
-                todolist.append(tododata)
+        for todo in todos:
+            try:
+                todolist.append(ToDo.from_sb_object(todo))
+            except IndexError:
+                # If Things is in use while we're working on it the
+                # index length can sometimes change. Skip whatever
+                # moved out from under us and plough on regardless.
+                continue
 
         self.todos = todolist
 
@@ -221,44 +208,31 @@ class ToDos(ThingsObject):
 
     def __iter__(self):
         """Iterate over the todo objects."""
-        for todo in self.todos:
-            yield todo
-
-    def __bool__(self):
-        """Are there any todos in this list?"""
-        return self.__len__() > 0
+        return iter(self.todos)
 
 
 class Areas(ThingsObject):
 
     def __init__(self):
-        ThingsObject.__init__(self)
-        self.areas = [ Area(i) for i in self.things.areas() ]
-        #x = Area(z)
-        #print(x.toDos)
+        super().__init__()
+        self.areas = [Area(i) for i in self.things.areas()]
 
-class Area(object):
+
+class Area:
     def __init__(self, area_object):
-        self.__dict__ = {
-            "name": area_object.name(),
-            "thingsid": area_object.id(),
-            "toDos": [ ToDo.fromSBObject(i) for i in area_object.toDos() ],
-            "tags": area_object.tagNames().split(", "),
-            "suspended": True if area_object.suspended() else False
-            #"projects": area_object.projects()
-            }
+        self.name = area_object.name()
+        self.thingsid = area_object.id()
+        self.todos = [ToDo.from_sb_object(i) for i in area_object.toDos()]
+        self.tags = area_object.tagNames().split(", ")
+        self.suspended = bool(area_object.suspended())
+        # self.projects = area_object.projects()
+
 
 class Contacts(ThingsObject):
-    #TODO
+    # TODO
     pass
 
-class Contact(object):
-    #TODO
+
+class Contact:
+    # TODO
     pass
-
-def main():
-    a = ToDo(name="Test", tags=["lol", "hax"],
-             notes="definitely a test", location="Today") #, creation_area="Home")
-
-if __name__ == "__main__":
-    main()
