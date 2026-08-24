@@ -7,6 +7,14 @@ Implementation
 -------------
 pythings uses the PyObjC Python/Objective-C bridge for communication with Things.
 
+Requirements
+-------------
+Python 3.7 or later on OS X, plus the ScriptingBridge PyObjC bindings:
+
+```
+pip install pyobjc-framework-ScriptingBridge
+```
+
 Use
 -------------
 
@@ -40,7 +48,7 @@ Known issues
 -------------
 Using the ScriptingBridge object will create a Python process that's visible in the dock. This is somewhat unavoidable.
 
-The use of the ScriptingBridge object means that you must use a version of Python with this functionality built in. When in doubt, use /usr/bin/python. The version I have installed from prefix Portage does not have this support included.
+The use of the ScriptingBridge object means that you must use a version of Python with this functionality available. No system Python 3 ships it, so install pyobjc-framework-ScriptingBridge (see Requirements above) into whichever interpreter you are using.
 
 The Applescript interface is slow like Philip Glass on DXM. Querying all ToDos or all Projects will take minutes for mature Things profiles. Querying all projects with their constituent todos takes 7 minutes on my computer, because this will query all historical information. This is a prime candidate for storing objects in some other format keyed by id.
 

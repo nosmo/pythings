@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pythings"
+version = "1.0.0"
+description = "Python interface to the Things task management app"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "GPL-3.0-only"}
+keywords = ["things", "todo"]
+authors = [
+    {name = "Hugh Nowlan", email = "nosmo@nosmo.me"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: MacOS :: MacOS X",
+]
+dependencies = [
+    "pyobjc-framework-ScriptingBridge",
+]
+
+[project.urls]
+Homepage = "http://github.com/nosmo/pythings"
+
+[tool.setuptools]
+packages = ["thingsinterface"]

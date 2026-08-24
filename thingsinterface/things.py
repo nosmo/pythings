@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 '''Python interface to Things.app's Applescript interface.
 
@@ -8,10 +8,10 @@ Lol! :'(
 try:
     import ScriptingBridge
 except ImportError as exc:
-    raise ImportError(("Please use an OS X specific version of Python "
-                       "with ScriptingBridge support"))
+    raise ImportError(("ScriptingBridge is unavailable. Install it with "
+                       "\"pip install pyobjc-framework-ScriptingBridge\" and use "
+                       "an OS X specific version of Python")) from exc
 
-from collections import namedtuple
 import sys
 
 # These integers are used to set the status of a task internally.
@@ -35,10 +35,10 @@ class Projects(ThingsObject):
         ThingsObject.__init__(self)
         self.projects = [ i for i in self.things.projects() ]
 
-class Project(object):
+class Project(ThingsObject):
     def __init__(self, project_object):
         ThingsObject.__init__(self)
-        self.__dict__ = {
+        self.__dict__.update({
             "name": project_object.name(),
             "notes": project_object.notes(),
             "creation_date": project_object.creationDate(),
@@ -51,12 +51,12 @@ class Project(object):
             # hack
             "completed": True if project_object.completionDate() else False,
             "contact": project_object.contact().name()
-        }
+        })
 
     def complete(self):
         #TODO
         # Implementation involves moving to List "Logbook"
-        raise NotImplemented
+        raise NotImplementedError
 
 class ToDo(ThingsObject):
 
@@ -83,9 +83,11 @@ class ToDo(ThingsObject):
         things = getThings()
         return ToDo(todo_obj=things.toDos().objectWithID_(desired_id))
 
-    def __init__(self, name="", tags=[], notes="",
+    def __init__(self, name="", tags=None, notes="",
                  location="Inbox", creation_area="", todo_obj=None):
         ThingsObject.__init__(self)
+
+        tags = list(tags) if tags else []
 
         if not todo_obj:
             self.name = name
@@ -138,7 +140,7 @@ class ToDo(ThingsObject):
     def fromSBObject(cls, todo_object):
 
         return cls(todo_object.name(), tags=todo_object.tagNames().split(", "),
-                   notes=todo_object.name(), creation_area=todo_object.area().name(),
+                   notes=todo_object.notes(), creation_area=todo_object.area().name(),
                    todo_obj=todo_object)
 
     @staticmethod
@@ -168,8 +170,13 @@ class ToDo(ThingsObject):
     def is_cancelled(self):
         return self.todo_object.status() == STATUS_MAP["cancelled"]
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
+        if not isinstance(other, ToDo):
+            return NotImplemented
         return self.thingsid == other.thingsid
+
+    def __hash__(self):
+        return hash(self.thingsid)
 
 class ToDos(ThingsObject):
 
@@ -217,12 +224,9 @@ class ToDos(ThingsObject):
         for todo in self.todos:
             yield todo
 
-    def __nonzero__(self):
+    def __bool__(self):
         """Are there any todos in this list?"""
-        if self.__len__() > 0:
-            return True
-        else:
-            return False
+        return self.__len__() > 0
 
 
 class Areas(ThingsObject):
@@ -231,7 +235,7 @@ class Areas(ThingsObject):
         ThingsObject.__init__(self)
         self.areas = [ Area(i) for i in self.things.areas() ]
         #x = Area(z)
-        #print x.toDos
+        #print(x.toDos)
 
 class Area(object):
     def __init__(self, area_object):
