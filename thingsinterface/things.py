@@ -11,6 +11,7 @@ except ImportError as exc:
                       "an OS X specific version of Python") from exc
 
 import enum
+import functools
 import warnings
 
 
@@ -22,7 +23,16 @@ class Status(enum.IntEnum):
     CANCELLED = 1952736108  # "tdcl"
 
 
+@functools.lru_cache(maxsize=None)
 def get_things():
+    """Return the shared bridge object for the Things application.
+
+    The result is cached: every ThingsObject used to build its own, so
+    wrapping a few thousand to dos meant a few thousand SBApplication
+    objects. SBApplication targets Things by bundle identifier and
+    relaunches it as needed, so one object stays usable across restarts
+    of the app. Call get_things.cache_clear() to force a fresh one.
+    """
     return ScriptingBridge.SBApplication.applicationWithBundleIdentifier_(
         "com.culturedcode.things")
 
