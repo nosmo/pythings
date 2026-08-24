@@ -21,12 +21,12 @@ Use
 At the moment the library is seriously dumb.
 
 Objects that currently work:
-Lists of all $objects that contains all $objects in the $objects attribute (these are resource intensive - see below)
+Collections of all $objects, which support len(), iteration and indexing, and also expose their contents in the $objects attribute (these are resource intensive - see below)
 * Projects
 * Areas
 * ToDos
 
-Simple objects that contain a dictionary of the expected attributes for the object
+Simple objects carrying the expected attributes for the object
 * Project
 * Area
 * ToDo
@@ -40,9 +40,33 @@ As of yet only ToDos support modification, like so:
 ```
 And a suitably named todo will appear in Today.
 
+Instantiating a ToDo creates one in Things. To work with todos that already exist, wrap them instead:
+```
+>>> todo = thingsinterface.ToDo.from_id(things_id)
+>>> todo.complete()
+>>> todo.is_closed()
+True
+```
+A todo's status can also be set with cancel() and read with is_cancelled(). The integers Things uses internally live in the Status enum.
+
 Stuff that doesn't work yet:
 * Contacts
 * Lists (largely will be used for internal status setting/project use)
+
+Naming
+-------------
+Names are snake_case throughout, apart from the ScriptingBridge selectors the library calls through to. If you used an earlier version:
+
+| Was | Now |
+| --- | --- |
+| `STATUS_MAP["closed"]` | `Status.CLOSED` |
+| `ToDo.fromSBObject(obj)` | `ToDo.from_sb_object(obj)` |
+| `ToDo(todo_obj=obj)` | `ToDo.from_sb_object(obj)` |
+| `ToDo._getTodoByID(id)` | `ToDo.from_id(id)` |
+| `Area.toDos` | `Area.todos` |
+| `getThings()` | `get_things()` |
+
+Projects now hold wrapped Project objects rather than raw ScriptingBridge ones, which makes building them as slow as querying every project's todos (see below). The projects, areas and todos attributes are read-only - iterate or index the collection instead of reassigning them.
 
 Known issues
 -------------
